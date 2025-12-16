@@ -16,7 +16,6 @@ import logging
 import json
 from typing import Any, Dict, List, Optional
 
-from google.adk.tools import agent_tool
 from google.cloud import bigquery
 from .config import config
 
@@ -27,7 +26,6 @@ def get_bigquery_client() -> bigquery.Client:
   return bigquery.Client(project=config.project_id)
 
 
-@agent_tool
 def get_approval_status() -> str:
   """Retrieve UDFs and Stored Procedures from a BigQuery dataset.
 
