@@ -1,4 +1,5 @@
 import logging
+import os
 from google.adk.agents import LlmAgent, SequentialAgent, Agent, ParallelAgent
 from .tools import (
     analyze_fraud_risk,
@@ -16,8 +17,36 @@ from .prompts.prompts import (
     ROOT_AGENT_INSTRUCTION,
     TRANSACTION_VALIDATOR_INSTRUCTION,
 )
+from .config import USE_VERTEXAI, GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, DEFAULT_MODEL
 
 logger = logging.getLogger('google_adk.' + __name__)
+
+# Initialize VertexAI if configured
+if USE_VERTEXAI:
+    try:
+        from google.cloud import aiplatform
+
+        if not GOOGLE_CLOUD_PROJECT:
+            logger.error("GOOGLE_CLOUD_PROJECT must be set when GOOGLE_GENAI_USE_VERTEXAI=True")
+            raise ValueError("GOOGLE_CLOUD_PROJECT is required for VertexAI")
+
+        aiplatform.init(
+            project=GOOGLE_CLOUD_PROJECT,
+            location=GOOGLE_CLOUD_LOCATION
+        )
+
+        logger.info(f"VertexAI initialized: project={GOOGLE_CLOUD_PROJECT}, location={GOOGLE_CLOUD_LOCATION}")
+
+        # Set environment variables for google-genai SDK to use VertexAI
+        os.environ['GOOGLE_CLOUD_PROJECT'] = GOOGLE_CLOUD_PROJECT
+        os.environ['GOOGLE_CLOUD_LOCATION'] = GOOGLE_CLOUD_LOCATION
+
+    except ImportError:
+        logger.error("google-cloud-aiplatform not installed. Install with: pip install google-cloud-aiplatform")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to initialize VertexAI: {e}")
+        raise
 
 # -------------------------
 # Parallel Analysis Agents
@@ -27,7 +56,7 @@ logger = logging.getLogger('google_adk.' + __name__)
 fraud_detection_agent = Agent(
     name="fraud_detection_agent",
     description="Analyzes transaction for potential fraud and suspicious activity.",
-    model="gemini-2.0-flash-exp",
+    model=DEFAULT_MODEL,
     instruction=FRAUD_DETECTION_INSTRUCTION,
     output_key="fraud_analysis_result",
     tools=[analyze_fraud_risk]
@@ -37,7 +66,7 @@ fraud_detection_agent = Agent(
 rule_compliance_agent = Agent(
     name="rule_compliance_agent",
     description="Verifies transaction compliance with business rules and regulations.",
-    model="gemini-2.0-flash-exp",
+    model=DEFAULT_MODEL,
     instruction=RULE_COMPLIANCE_INSTRUCTION,
     output_key="compliance_analysis_result",
     tools=[check_compliance_rules]
@@ -47,7 +76,7 @@ rule_compliance_agent = Agent(
 customer_history_agent = Agent(
     name="customer_history_agent",
     description="Analyzes transaction against customer's historical behavior.",
-    model="gemini-2.0-flash-exp",
+    model=DEFAULT_MODEL,
     instruction=CUSTOMER_HISTORY_INSTRUCTION,
     output_key="history_analysis_result",
     tools=[analyze_customer_history]
@@ -57,7 +86,7 @@ customer_history_agent = Agent(
 anomaly_detection_agent = Agent(
     name="anomaly_detection_agent",
     description="Detects unusual patterns and anomalies in transaction data.",
-    model="gemini-2.0-flash-exp",
+    model=DEFAULT_MODEL,
     instruction=ANOMALY_DETECTION_INSTRUCTION,
     output_key="anomaly_analysis_result",
     tools=[detect_anomalies]
@@ -84,7 +113,7 @@ parallel_analysis_agent = ParallelAgent(
 
 summary_agent = LlmAgent(
     name="summary_agent",
-    model="gemini-2.0-flash-exp",
+    model=DEFAULT_MODEL,
     instruction=SUMMARY_AGENT_INSTRUCTION,
     description="Aggregates results from all analysis agents and makes final recommendation.",
 )
@@ -100,7 +129,7 @@ transaction_analysis_flow = SequentialAgent(
         Agent(
             name="transaction_validator",
             description="Validates and prepares transaction data for analysis.",
-            model="gemini-2.0-flash-exp",
+            model=DEFAULT_MODEL,
             instruction=TRANSACTION_VALIDATOR_INSTRUCTION,
             output_key="validated_transaction"
         ),
@@ -116,7 +145,7 @@ transaction_analysis_flow = SequentialAgent(
 tri_netra_root_agent = Agent(
     name="tri_netra_orchestrator",
     description="Tri-Netra: AI-powered transaction analysis system for fraud detection and risk assessment.",
-    model="gemini-2.0-flash-exp",
+    model=DEFAULT_MODEL,
     instruction=ROOT_AGENT_INSTRUCTION,
     sub_agents=[
         transaction_analysis_flow
