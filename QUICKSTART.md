@@ -71,28 +71,39 @@ chmod +x setup_cloud_shell.sh
 
 Wait for it to complete (2-3 minutes).
 
-### 5. Get Your API Key
+### 5. Configure Environment (Automated)
 
-**Method 1: Using Console**
-1. Go to https://console.cloud.google.com/apis/credentials
-2. Click "Create Credentials" > "API Key"
-3. Copy the key
+The `create_env.sh` script will automatically:
+- ✅ Get your GCP project ID
+- ✅ Set your region/location
+- ✅ Configure VertexAI settings
+- ✅ Create/verify GCS bucket
+- ✅ Set up all required variables
 
-**Method 2: Using CLI**
+Just run:
 ```bash
-gcloud alpha services api-keys create tri-netra-key \
-    --display-name="Tri-Netra API Key"
+./create_env.sh
 ```
+
+It will guide you through the process interactively!
 
 ### 6. Configure Environment
 
+**Option A: Auto-generate (Recommended)**
 ```bash
-# Edit .env file
+./create_env.sh
+```
+This automatically pulls your GCP project, location, and creates the .env file.
+
+**Option B: Manual configuration**
+```bash
+# Copy the example
+cp .env.example .env
+
+# Edit it
 nano .env
 
-# Add this line:
-GOOGLE_API_KEY=your_actual_api_key_here
-
+# Update the values
 # Save: Ctrl+O, Enter
 # Exit: Ctrl+X
 ```

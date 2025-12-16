@@ -67,9 +67,15 @@ echo ""
 # Step 5: Set up environment variables
 print_info "Setting up environment variables..."
 if [ ! -f .env ]; then
-    cp .env.example .env
-    print_info "Created .env file from .env.example"
-    print_info "Please edit .env and add your configuration"
+    print_info "Running create_env.sh to auto-generate .env file..."
+    ./create_env.sh
+else
+    print_info ".env file already exists"
+    read -p "Do you want to regenerate it? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        ./create_env.sh
+    fi
 fi
 
 # Export environment variables
