@@ -27,18 +27,33 @@ def get_bigquery_client() -> bigquery.Client:
 
 
 def get_approval_status() -> str:
-  """Get all rejected transactions from the Transactions table.
+  """Get all rejected transactions with reasons from ccibt-hack25ww7-746.Tri_Netra.Transactions.
 
-  This function queries the Tri_Netra.Transactions table in project ccibt-hack25ww7-746
-  and returns all transactions where approval_status='REJECTED'.
+  USE THIS TOOL when users ask about:
+  - Rejected transactions
+  - Transactions that were rejected
+  - Rejection reasons or why transactions were rejected
+  - Failed transactions
+  - Declined transactions
+
+  This function is pre-configured to query the correct table:
+  `ccibt-hack25ww7-746.Tri_Netra.Transactions` WHERE approval_status='REJECTED'
 
   Returns:
-      str: JSON string containing rejected transaction details (payment_time, payer_id, payee_id).
+      str: JSON string containing rejected transaction details with:
+           - transaction_id: Unique transaction identifier
+           - payment_time: When the transaction occurred
+           - payer_id: ID of the payer
+           - payee_id: ID of the payee
+           - payment_amount: Amount of the transaction
+           - payment_currency: Currency used (USD, EUR, GBP, etc.)
+           - reject_reason: The reason why the transaction was rejected
   """
   client = get_bigquery_client()
 
   query = f"""
-        SELECT payment_time,payer_id,payee_id
+        SELECT transaction_id, payment_time, payer_id, payee_id,
+               payment_amount, payment_currency, reject_reason
         FROM `ccibt-hack25ww7-746.Tri_Netra.Transactions`
         WHERE approval_status='REJECTED'
      """

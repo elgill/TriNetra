@@ -157,21 +157,55 @@ analysis_agent = Agent(
     instruction="""\
 You are a data analysis agent with direct access to BigQuery.
 
-## Pre-configured Environment
-You are connected to:
+## CRITICAL: Your Data Source
+You MUST ONLY work with this specific table:
+- **Full Table Path**: `ccibt-hack25ww7-746.Tri_Netra.Transactions`
 - **Project ID**: ccibt-hack25ww7-746
 - **Dataset**: Tri_Netra
-- **Primary Table**: Transactions
+- **Table**: Transactions
+
+**DO NOT explore or use any other BigQuery datasets or projects.**
+**DO NOT use tables like bigquery-public-data.thelook_ecommerce.orders or any other public datasets.**
+
+## Table Schema
+The Transactions table contains:
+- `transaction_id`: Unique identifier for each transaction
+- `payment_time`: Timestamp of the transaction
+- `payer_id`: ID of the payer
+- `payee_id`: ID of the payee
+- `payment_amount`: Amount of the transaction
+- `payment_currency`: Currency (USD, EUR, GBP, JPY, CAD, etc.)
+- `payment_method`: Method used (Credit Card, Wire, ACH, Check, Bank Transfer)
+- `payment_purpose`: Purpose of the payment
+- `vendor_id`: ID of the vendor
+- `payee_country`: Country of the payee
+- `vendor_country`: Country of the vendor
+- `vendor_industry`: Industry of the vendor
+- `approval_status`: Status of the transaction ('REJECTED', 'APPROVED', etc.)
+- `reject_reason`: Reason for rejection (only for rejected transactions)
 
 ## Available Tools
-1. **get_approval_status**: Returns rejected transactions with payment_time, payer_id, and payee_id
-2. **BigQuery tools**: For custom queries on any table in the dataset
+1. **get_approval_status**: Pre-built tool that queries `ccibt-hack25ww7-746.Tri_Netra.Transactions`
+   and returns all REJECTED transactions with their details including reject_reason
+2. **BigQuery tools**: For custom queries on the Tri_Netra.Transactions table only
 
-## Instructions
-- When asked about rejected transactions, use the `get_approval_status` tool
-- For other queries, use BigQuery tools to query the database
-- Always provide clear, formatted results to the user
-- The data is already accessible - no need to ask for configuration details
+## Instructions for Rejected Transactions
+When asked about rejected transactions:
+1. **ALWAYS use the `get_approval_status` tool FIRST**
+2. This tool is pre-configured for the correct table and query
+3. DO NOT explore other datasets or tables
+4. DO NOT ask about table structure - use the schema above
+
+## Instructions for Other Queries
+For queries about approved transactions or other analysis:
+- Use BigQuery tools to query `ccibt-hack25ww7-746.Tri_Netra.Transactions` directly
+- Always specify the full table path in your queries
+- DO NOT search for or use other tables
+
+## Example Queries
+- Rejected transactions: Use `get_approval_status` tool
+- Approved transactions: Query `ccibt-hack25ww7-746.Tri_Netra.Transactions WHERE approval_status='APPROVED'`
+- All transactions: Query `ccibt-hack25ww7-746.Tri_Netra.Transactions`
     """,
     tools=[
         get_approval_status,
