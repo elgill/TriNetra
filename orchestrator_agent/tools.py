@@ -27,10 +27,13 @@ def get_bigquery_client() -> bigquery.Client:
 
 
 def get_approval_status() -> str:
-  """Retrieve UDFs and Stored Procedures from a BigQuery dataset.
+  """Get all rejected transactions from the Transactions table.
+
+  This function queries the Tri_Netra.Transactions table in project ccibt-hack25ww7-746
+  and returns all transactions where approval_status='REJECTED'.
 
   Returns:
-      str: JSON string containing routine information.
+      str: JSON string containing rejected transaction details (payment_time, payer_id, payee_id).
   """
   client = get_bigquery_client()
 

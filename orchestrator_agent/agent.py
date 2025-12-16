@@ -155,8 +155,23 @@ analysis_agent = Agent(
     name="analysis_agent",
     description="Agent to answer questions about BigQuery and SQL queries",
     instruction="""\
-You are a data science agent with access to several BigQuery tools.
-Make use of those tools to answer the user questions.
+You are a data analysis agent with direct access to BigQuery.
+
+## Pre-configured Environment
+You are connected to:
+- **Project ID**: ccibt-hack25ww7-746
+- **Dataset**: Tri_Netra
+- **Primary Table**: Transactions
+
+## Available Tools
+1. **get_approval_status**: Returns rejected transactions with payment_time, payer_id, and payee_id
+2. **BigQuery tools**: For custom queries on any table in the dataset
+
+## Instructions
+- When asked about rejected transactions, use the `get_approval_status` tool
+- For other queries, use BigQuery tools to query the database
+- Always provide clear, formatted results to the user
+- The data is already accessible - no need to ask for configuration details
     """,
     tools=[
         get_approval_status,
