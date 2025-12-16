@@ -19,3 +19,22 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger('google_adk.' + __name__)
+
+
+class Config:
+    """Configuration class for orchestrator agent."""
+
+    def __init__(self):
+        self.project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+        self.location = os.getenv('GOOGLE_CLOUD_LOCATION', 'us-central1')
+        self.use_vertexai = os.getenv('GOOGLE_GENAI_USE_VERTEXAI', 'True').lower() == 'true'
+
+        if not self.project_id:
+            logger.warning(
+                "GOOGLE_CLOUD_PROJECT environment variable not set. "
+                "BigQuery operations may fail."
+            )
+
+
+# Create singleton config instance
+config = Config()
