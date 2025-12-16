@@ -18,7 +18,7 @@ fi
 # Check if ADK is installed
 if ! command -v adk &> /dev/null; then
     echo "ADK CLI not found. Installing..."
-    pip install google-adk-cli
+    pip install google-adk
 fi
 
 # Start ADK web
@@ -26,4 +26,5 @@ echo "Starting Tri-Netra with ADK Web..."
 echo "Access the UI at the URL shown below"
 echo ""
 
-adk web --config adk_config.yaml
+# Run ADK web pointing to the agents directory
+adk web agents/

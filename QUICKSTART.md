@@ -114,7 +114,12 @@ You should see `(venv)` in your prompt.
 
 Click the **Web Preview** button (🔗) in Cloud Shell and select port 8080.
 
-**Option B: Python Script**
+**Option B: Simple Python Script**
+```bash
+python run_agent.py
+```
+
+**Option C: Example Scenarios**
 ```bash
 python -m agents.tri_netra_orchestrator.example_usage
 ```
