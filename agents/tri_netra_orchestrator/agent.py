@@ -124,4 +124,7 @@ tri_netra_root_agent = Agent(
     tools=[submit_for_human_review]
 )
 
+# ADK web expects a variable named 'root_agent'
+root_agent = tri_netra_root_agent
+
 logger.info("Tri-Netra orchestrator agent initialized successfully")
