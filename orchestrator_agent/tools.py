@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from google.adk.tools import agent_tool
 from google.cloud import bigquery
-from ..config import config
+from .config import config
 
 logger = logging.getLogger('google_adk.' + __name__)
 

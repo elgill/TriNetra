@@ -20,7 +20,7 @@ from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
 
 from .prompts.prompts import ROOT_AGENT_INSTRUCTION
-from .tools.bigquery_tools import get_approval_status
+from .tools import get_approval_status
 
 logger = logging.getLogger('google_adk.' + __name__)
 
