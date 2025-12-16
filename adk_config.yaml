@@ -1,0 +1,83 @@
+# ADK Configuration for Tri-Netra Transaction Analysis System
+# This file configures the agent for deployment with Google ADK Web
+
+name: tri-netra-transaction-analyzer
+description: AI-powered transaction analysis system for fraud detection and risk assessment
+
+# Agent configuration
+agent:
+  # The main agent module path
+  module: agents.tri_netra_orchestrator.agent
+  # The agent instance to use
+  agent_name: tri_netra_root_agent
+
+# Model configuration
+model:
+  name: gemini-2.0-flash-exp
+  # Alternative: gemini-1.5-pro, gemini-2.5-flash, etc.
+
+# Environment configuration
+environment:
+  variables:
+    FRAUD_AMOUNT_THRESHOLD: "10000.0"
+    HIGH_RISK_COUNTRIES: ""
+    BUSINESS_RULES_ENABLED: "true"
+    TRI_NETRA_MODEL: "gemini-2.0-flash-exp"
+    ANALYSIS_MODEL: "gemini-2.0-flash-exp"
+    LOG_LEVEL: "INFO"
+
+# Session configuration
+session:
+  # Enable session state for maintaining context
+  enable_state: true
+  # Timeout in seconds
+  timeout: 3600
+
+# Tool configuration
+tools:
+  # Enable all tools defined in the agent
+  enable_all: true
+
+# Input schema for the web interface
+input_schema:
+  type: object
+  properties:
+    transaction_id:
+      type: string
+      description: Unique transaction identifier
+    payment_amount:
+      type: number
+      description: Transaction amount
+    payment_currency:
+      type: string
+      description: Currency code (e.g., USD, EUR)
+      default: USD
+    payer_id:
+      type: string
+      description: Payer identifier
+    payee_id:
+      type: string
+      description: Payee identifier
+    payment_method:
+      type: string
+      description: Payment method (e.g., Credit Card, Wire Transfer)
+    payment_purpose:
+      type: string
+      description: Purpose of the payment
+    vendor_id:
+      type: string
+      description: Vendor identifier
+    vendor_industry:
+      type: string
+      description: Vendor industry category
+    payee_country:
+      type: string
+      description: Payee country code
+    vendor_country:
+      type: string
+      description: Vendor country code
+  required:
+    - transaction_id
+    - payment_amount
+    - payer_id
+    - payee_id
