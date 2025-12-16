@@ -22,4 +22,4 @@ source .adk-venv/bin/activate
 
 # Launch ADK Web for the orchestrator agent
 echo "Launching ADK Web for Orchestrator Agent..."
-adk web orchestrator_agent
+adk web
