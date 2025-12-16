@@ -25,7 +25,7 @@ from .prompts.prompts import (
     ANALYSIS_AGENT_INSTRUCTION,
     TRANSACTION_APPROVAL_AGENT_INSTRUCTION
 )
-from .tools import get_approval_status, get_similar_transactions
+from .tools import get_approval_status, get_similar_transactions, insert_transaction_feedback
 
 logger = logging.getLogger('google_adk.' + __name__)
 
@@ -157,6 +157,7 @@ bigquery_toolset = BigQueryToolset(
 # Wrap the custom functions in FunctionTool
 get_approval_status_tool = FunctionTool(get_approval_status)
 get_similar_transactions_tool = FunctionTool(get_similar_transactions)
+insert_transaction_feedback_tool = FunctionTool(insert_transaction_feedback)
 
 # Analysis agent with BigQuery access
 analysis_agent = Agent(
@@ -174,10 +175,11 @@ analysis_agent = Agent(
 transaction_approval_agent = Agent(
     model="gemini-2.5-pro",
     name="transaction_approval_agent",
-    description="Agent to evaluate transactions and determine if they should be approved or rejected",
+    description="Agent to evaluate transactions and determine if they should be approved or rejected, and collect user feedback",
     instruction=TRANSACTION_APPROVAL_AGENT_INSTRUCTION,
     tools=[
         get_similar_transactions_tool,
+        insert_transaction_feedback_tool,
         bigquery_toolset
     ],
 )

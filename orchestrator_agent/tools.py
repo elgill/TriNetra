@@ -14,6 +14,8 @@
 
 import logging
 import json
+import uuid
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from google.cloud import bigquery
@@ -230,6 +232,223 @@ def get_similar_transactions(
     return json.dumps(
         {
             "error": f"Error retrieving similar transactions: {e}"
+        },
+        indent=2,
+    )
+
+
+def insert_transaction_feedback(
+    agent_decision: str,
+    user_decision: str,
+    agent_reasoning: Optional[str] = None,
+    agent_confidence: Optional[str] = None,
+    feedback_notes: Optional[str] = None,
+    transaction_id: Optional[str] = None,
+    payer_id: Optional[str] = None,
+    payee_id: Optional[str] = None,
+    payment_amount: Optional[float] = None,
+    payment_currency: Optional[str] = None,
+    payment_method: Optional[str] = None,
+    payment_purpose: Optional[str] = None,
+    vendor_id: Optional[str] = None,
+    payee_country: Optional[str] = None,
+    vendor_country: Optional[str] = None,
+    vendor_industry: Optional[str] = None,
+    session_id: Optional[str] = None,
+    payment_time: Optional[str] = None,
+    reject_reason: Optional[str] = None
+) -> str:
+  """Insert user feedback on transaction approval decision into BigQuery.
+
+  This tool performs TWO insertions:
+  1. Inserts feedback record into Transaction_Feedback table
+  2. Inserts the transaction into Transactions table (with user's correct decision)
+     so future analyses can learn from this feedback
+
+  USE THIS TOOL when the user provides feedback on your approval/rejection decision.
+
+  Args:
+      agent_decision: The decision you made ('APPROVE', 'REJECT', or 'MARKED FOR REVIEW')
+      user_decision: The decision the user says is correct ('APPROVE', 'REJECT', or 'MARKED FOR REVIEW')
+      agent_reasoning: Your reasoning for the decision (optional)
+      agent_confidence: Your confidence level ('High', 'Medium', 'Low') (optional)
+      feedback_notes: Additional notes or explanation from the user (optional)
+      transaction_id: Transaction ID if available (optional, will be generated if not provided)
+      payer_id: ID of the payer (optional)
+      payee_id: ID of the payee (optional)
+      payment_amount: Amount of the payment (optional)
+      payment_currency: Currency used (optional)
+      payment_method: Payment method (optional)
+      payment_purpose: Purpose of payment (optional)
+      vendor_id: Vendor ID (optional)
+      payee_country: Country of payee (optional)
+      vendor_country: Country of vendor (optional)
+      vendor_industry: Industry of vendor (optional)
+      session_id: Session ID for tracking (optional)
+      payment_time: Timestamp of transaction (optional, will use current time if not provided)
+      reject_reason: Reason for rejection if user_decision is REJECT (optional)
+
+  Returns:
+      str: JSON string confirming the feedback and transaction were stored or an error message
+  """
+  client = get_bigquery_client()
+
+  # Generate unique feedback ID and transaction ID if not provided
+  feedback_id = str(uuid.uuid4())
+  if not transaction_id:
+    transaction_id = str(uuid.uuid4())
+
+  feedback_timestamp = datetime.utcnow().isoformat()
+  if not payment_time:
+    payment_time = feedback_timestamp
+
+  # Determine if agent was correct
+  is_agent_correct = agent_decision.upper() == user_decision.upper()
+
+  # Prepare the feedback row
+  feedback_row = {
+      "feedback_id": feedback_id,
+      "feedback_timestamp": feedback_timestamp,
+      "transaction_id": transaction_id,
+      "payer_id": payer_id,
+      "payee_id": payee_id,
+      "payment_amount": payment_amount,
+      "payment_currency": payment_currency,
+      "payment_method": payment_method,
+      "payment_purpose": payment_purpose,
+      "vendor_id": vendor_id,
+      "payee_country": payee_country,
+      "vendor_country": vendor_country,
+      "vendor_industry": vendor_industry,
+      "agent_decision": agent_decision.upper(),
+      "agent_reasoning": agent_reasoning,
+      "agent_confidence": agent_confidence,
+      "user_decision": user_decision.upper(),
+      "is_agent_correct": is_agent_correct,
+      "feedback_notes": feedback_notes,
+      "session_id": session_id,
+      "agent_version": "v1.0"
+  }
+
+  # Prepare the transaction row (using user's correct decision)
+  transaction_row = {
+      "transaction_id": transaction_id,
+      "payment_time": payment_time,
+      "payer_id": payer_id,
+      "payee_id": payee_id,
+      "payment_amount": payment_amount,
+      "payment_currency": payment_currency,
+      "payment_method": payment_method,
+      "payment_purpose": payment_purpose,
+      "vendor_id": vendor_id,
+      "payee_country": payee_country,
+      "vendor_country": vendor_country,
+      "vendor_industry": vendor_industry,
+      "approval_status": user_decision.upper(),
+      "reject_reason": reject_reason if user_decision.upper() == "REJECT" else None
+  }
+
+  # Remove None values
+  feedback_row_clean = {k: v for k, v in feedback_row.items() if v is not None}
+  transaction_row_clean = {k: v for k, v in transaction_row.items() if v is not None}
+
+  feedback_table_id = "ccibt-hack25ww7-746.Tri_Netra.Transaction_Feedback"
+  transactions_table_id = "ccibt-hack25ww7-746.Tri_Netra.Transactions"
+
+  try:
+    # 1. Insert into Transaction_Feedback table
+    # Check if feedback table exists, if not create it
+    try:
+      client.get_table(feedback_table_id)
+    except Exception:
+      # Table doesn't exist, create it
+      feedback_schema = [
+          bigquery.SchemaField("feedback_id", "STRING", mode="REQUIRED"),
+          bigquery.SchemaField("feedback_timestamp", "TIMESTAMP", mode="REQUIRED"),
+          bigquery.SchemaField("transaction_id", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("payer_id", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("payee_id", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("payment_amount", "FLOAT64", mode="NULLABLE"),
+          bigquery.SchemaField("payment_currency", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("payment_method", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("payment_purpose", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("vendor_id", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("payee_country", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("vendor_country", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("vendor_industry", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("agent_decision", "STRING", mode="REQUIRED"),
+          bigquery.SchemaField("agent_reasoning", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("agent_confidence", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("user_decision", "STRING", mode="REQUIRED"),
+          bigquery.SchemaField("is_agent_correct", "BOOLEAN", mode="REQUIRED"),
+          bigquery.SchemaField("feedback_notes", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("session_id", "STRING", mode="NULLABLE"),
+          bigquery.SchemaField("agent_version", "STRING", mode="NULLABLE"),
+      ]
+      feedback_table = bigquery.Table(feedback_table_id, schema=feedback_schema)
+      feedback_table.description = "Stores user feedback on transaction approval decisions"
+      client.create_table(feedback_table)
+      logger.info(f"Created table {feedback_table_id}")
+
+    # Insert feedback
+    feedback_errors = client.insert_rows_json(feedback_table_id, [feedback_row_clean])
+
+    if feedback_errors:
+      return json.dumps(
+          {
+              "error": f"Error inserting feedback into BigQuery: {feedback_errors}"
+          },
+          indent=2,
+      )
+
+    # 2. Insert into Transactions table (for future learning)
+    transaction_errors = client.insert_rows_json(transactions_table_id, [transaction_row_clean])
+
+    if transaction_errors:
+      # Even if transaction insert fails, feedback was stored
+      logger.warning(f"Transaction insert had errors: {transaction_errors}")
+      return json.dumps(
+          {
+              "success": True,
+              "message": "Feedback stored successfully, but transaction insert had issues",
+              "feedback_id": feedback_id,
+              "transaction_id": transaction_id,
+              "warning": f"Transaction table insert errors: {transaction_errors}",
+              "feedback_summary": {
+                  "agent_decision": agent_decision.upper(),
+                  "user_decision": user_decision.upper(),
+                  "is_agent_correct": is_agent_correct,
+                  "feedback_timestamp": feedback_timestamp
+              }
+          },
+          indent=2,
+      )
+
+    # Return success response
+    response = {
+        "success": True,
+        "message": "Feedback and transaction stored successfully",
+        "feedback_id": feedback_id,
+        "transaction_id": transaction_id,
+        "details": {
+            "feedback_stored": True,
+            "transaction_stored": True,
+            "can_be_used_for_future_analysis": True
+        },
+        "feedback_summary": {
+            "agent_decision": agent_decision.upper(),
+            "user_decision": user_decision.upper(),
+            "is_agent_correct": is_agent_correct,
+            "feedback_timestamp": feedback_timestamp
+        }
+    }
+
+    return json.dumps(response, indent=2)
+
+  except Exception as e:
+    return json.dumps(
+        {
+            "error": f"Error storing feedback: {e}"
         },
         indent=2,
     )

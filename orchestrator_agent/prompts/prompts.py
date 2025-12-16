@@ -395,12 +395,77 @@ Structure your response as follows:
 **Recommended Actions (if rejected or marked for review):**
 - [Specific steps to take or additional verification needed]
 
+## Step 5: Collect User Feedback
+
+After providing your decision, **ALWAYS ask the user for feedback**:
+
+"Would you like to provide feedback on this decision? You can:
+1. Confirm if my decision is correct
+2. Provide an alternative assessment if you disagree
+3. Add any additional notes or context
+
+Please let me know: Do you agree with this decision, or would you like to provide a different assessment?"
+
+When the user provides feedback:
+- **Extract their decision** (APPROVE/REJECT/MARKED FOR REVIEW)
+- **Extract any notes** they provide
+- **Use the insert_transaction_feedback tool** to store the feedback
+- **CRITICAL**: Pass ALL the original transaction parameters you received
+
+**What this tool does (Dual Insertion):**
+1. Stores the feedback in `Transaction_Feedback` table (tracks your accuracy)
+2. **Inserts the transaction into `Transactions` table** with the user's CORRECT decision
+   - This is crucial: future analyses will learn from this corrected transaction
+   - The transaction becomes part of the historical data for similar queries
+
+**Required parameters to pass:**
+- agent_decision: Your decision
+- user_decision: User's correct decision
+- agent_reasoning: Your full reasoning text
+- agent_confidence: Your confidence level
+- All transaction fields: payer_id, payee_id, payment_amount, payment_currency, payment_method,
+  payment_purpose, vendor_id, payee_country, vendor_country, vendor_industry
+- feedback_notes: User's explanation (if provided)
+- reject_reason: If user says REJECT, extract/infer the reason from their feedback
+
+Example tool usage:
+```
+insert_transaction_feedback(
+    agent_decision="REJECT",
+    user_decision="APPROVE",  # What the user says is correct
+    agent_reasoning="Currency mismatch: GBP payment to Canada-based payee. Found 94% rejection rate...",
+    agent_confidence="High",
+    feedback_notes="Pre-approved vendor with special authorization",
+    payer_id="COMP0030",
+    payee_id="PAYEE0319",
+    payment_amount=22755.21,
+    payment_currency="GBP",
+    payment_method="Check",
+    payment_purpose="Marketing Campaign",
+    vendor_id="VEND0390",
+    payee_country="UK",
+    vendor_country="Canada",
+    vendor_industry="Manufacturing",
+    reject_reason=None  # User approved it, so no reject reason
+)
+```
+
+After storing feedback, confirm to the user:
+"Thank you for your feedback! I've recorded your assessment that this transaction should be [USER_DECISION].
+
+✓ Feedback stored in Transaction_Feedback table
+✓ Transaction added to Transactions table with your correct decision
+
+This means future queries for similar transactions will now include this example with the correct [USER_DECISION] decision. The system will learn from your correction!"
+
 ## Important Guidelines
 - **Always query similar transactions** - Never make a decision without historical data
 - **Be conservative** - When in doubt, mark for review rather than auto-approve
 - **Consider multiple dimensions** - Don't rely on a single characteristic
 - **Explain clearly** - Provide transparent reasoning for your decision
 - **Use specific examples** - Reference actual similar transactions when possible
+- **Always ask for feedback** - After every decision, prompt the user to provide feedback
+- **Store all feedback** - Use the insert_transaction_feedback tool to save user corrections
 
 ## Example Response Format
 
@@ -446,11 +511,11 @@ ROOT_AGENT_INSTRUCTION = """
 The system is connected to:
 - **Project ID**: ccibt-hack25ww7-746
 - **Dataset**: Tri_Netra
-- **Primary Table**: Transactions
+- **Primary Tables**: Transactions, Transaction_Feedback
 
 ## Available Sub-Agents
 - **analysis_agent**: Your data analysis specialist with direct BigQuery access for general queries
-- **transaction_approval_agent**: Specialist for evaluating transaction approval/rejection decisions
+- **transaction_approval_agent**: Specialist for evaluating transaction approval/rejection decisions AND collecting user feedback
 
 ---
 
@@ -462,9 +527,15 @@ The system is connected to:
 - Asks to evaluate a transaction
 - Provides transaction details and wants an approval decision
 - Asks "Should this transaction be approved?"
+- Provides feedback on a previous decision (agree/disagree with the agent's assessment)
 
 **User**: "I have a transaction: payer COMP0030, payee PAYEE0319, amount 22755.21 GBP, payment method Check, payee country UK, vendor country Canada, vendor industry Manufacturing. Should this be approved?"
 **You**: Immediately delegate to transaction_approval_agent (no response needed)
+
+**Note**: The transaction_approval_agent will:
+1. Analyze the transaction and provide a decision
+2. Ask the user for feedback
+3. Store the feedback in BigQuery for continuous learning
 
 ### When User Asks About Transaction Data or Analysis
 **IMMEDIATELY** call the `analysis_agent` sub-agent for:
