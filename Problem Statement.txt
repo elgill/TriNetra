@@ -1,0 +1,17 @@
+The traditional 4-eye check (maker-checker) process, designed to ensure control, is manual and inefficient. It suffers from:
+	• Rubber Stamp Effect: Duplication without real scrutiny, creating false comfort.
+	• Latency Bottlenecks: Adds 2–6 hours to workflows, slowing operations.
+	• Collusive Blind Spots: Vulnerable to human collusion, reducing effectiveness.
+These gaps lead to operational delays, increased risk exposure, and inconsistent control effectiveness.
+Implement Tri-Netra, an AI-driven agentic framework that:
+	• Automates parallel synthetic reviews to validate transactions or workflows.
+	• Detects anomalies and escalates them to human reviewers while tracking agent vs. human performance.
+	• Provides AI decision and reasoning before human reviewers act.
+	• Enables pre-investigative triage for early anomaly detection.
+	• Introduces adaptive learning loops based on rejected or reviewed cases.
+
+https://data.4tu.nl/datasets/db35afac-2133-40f3-a565-2dc77a9329a3/1
+https://data.4tu.nl/datasets/a6f651a7-5ce0-4bc6-8be1-a7747effa1cc/1
+https://www.tf-pm.org/resources/logs
+
+Additional dataset staged on GCS Bucket in hackathon project
