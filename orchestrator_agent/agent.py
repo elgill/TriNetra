@@ -20,8 +20,12 @@ from google.adk.tools import FunctionTool
 from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
 
-from .prompts.prompts import ROOT_AGENT_INSTRUCTION, ANALYSIS_AGENT_INSTRUCTION
-from .tools import get_approval_status
+from .prompts.prompts import (
+    ROOT_AGENT_INSTRUCTION,
+    ANALYSIS_AGENT_INSTRUCTION,
+    TRANSACTION_APPROVAL_AGENT_INSTRUCTION
+)
+from .tools import get_approval_status, get_similar_transactions
 
 logger = logging.getLogger('google_adk.' + __name__)
 
@@ -150,8 +154,9 @@ bigquery_toolset = BigQueryToolset(
     credentials_config=credentials_config, bigquery_tool_config=tool_config
 )
 
-# Wrap the custom function in FunctionTool
+# Wrap the custom functions in FunctionTool
 get_approval_status_tool = FunctionTool(get_approval_status)
+get_similar_transactions_tool = FunctionTool(get_similar_transactions)
 
 # Analysis agent with BigQuery access
 analysis_agent = Agent(
@@ -165,6 +170,18 @@ analysis_agent = Agent(
     ],
 )
 
+# Transaction approval agent
+transaction_approval_agent = Agent(
+    model="gemini-2.5-pro",
+    name="transaction_approval_agent",
+    description="Agent to evaluate transactions and determine if they should be approved or rejected",
+    instruction=TRANSACTION_APPROVAL_AGENT_INSTRUCTION,
+    tools=[
+        get_similar_transactions_tool,
+        bigquery_toolset
+    ],
+)
+
 # Root orchestrator agent
 root_agent = Agent(
     name="orchestrator_root_agent",
@@ -172,7 +189,8 @@ root_agent = Agent(
     model="gemini-2.5-flash",
     instruction=ROOT_AGENT_INSTRUCTION,
     sub_agents=[
-        analysis_agent
+        analysis_agent,
+        transaction_approval_agent
     ]
 )
 
