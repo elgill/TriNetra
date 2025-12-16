@@ -16,6 +16,7 @@ import logging
 import google.auth
 
 from google.adk.agents import Agent
+from google.adk.tools import FunctionTool
 from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
 
@@ -149,6 +150,9 @@ bigquery_toolset = BigQueryToolset(
     credentials_config=credentials_config, bigquery_tool_config=tool_config
 )
 
+# Wrap the custom function in FunctionTool
+get_approval_status_tool = FunctionTool(get_approval_status)
+
 # Analysis agent with BigQuery access
 analysis_agent = Agent(
     model="gemini-2.5-pro",
@@ -208,7 +212,7 @@ For queries about approved transactions or other analysis:
 - All transactions: Query `ccibt-hack25ww7-746.Tri_Netra.Transactions`
     """,
     tools=[
-        get_approval_status,
+        get_approval_status_tool,
         bigquery_toolset
     ],
 )
