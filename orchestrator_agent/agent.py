@@ -13,20 +13,15 @@
 # limitations under the License.
 
 import logging
-from google.adk.agents import LlmAgent, SequentialAgent, Agent, ParallelAgent
-from google.adk.tools import google_search
-from google.genai import types
-from .prompts.prompts import (
-    EMAIL_DRAFTER_INSTRUCTION,
-    EMAIL_PUBLISHER_INSTRUCTION,
-    SLACK_DRAFTER_INSTRUCTION,
-    SLACK_PUBLISHER_INSTRUCTION,
-    EVENT_DETAILS_EXTRACTOR_INSTRUCTION,
-    CALENDAR_PUBLISHER_INSTRUCTION,
-    SUMMARY_AGENT_INSTRUCTION,
-    MESSAGE_ENHANCER_INSTRUCTION,
-    ROOT_AGENT_INSTRUCTION,
-)
+import google.auth
+
+from google.adk.agents import Agent
+from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
+from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
+
+from .config import config
+from .prompts.prompts import ROOT_AGENT_INSTRUCTION
+from .tools.bigquery_tools import get_approval_status
 
 logger = logging.getLogger('google_adk.' + __name__)
 
@@ -143,12 +138,41 @@ logger = logging.getLogger('google_adk.' + __name__)
 #     ]
 # )
 
+# Configure BigQuery toolset with read-only access
+tool_config = BigQueryToolConfig(write_mode=WriteMode.BLOCKED)
+
+application_default_credentials, _ = google.auth.default()
+credentials_config = BigQueryCredentialsConfig(
+    credentials=application_default_credentials
+)
+
+bigquery_toolset = BigQueryToolset(
+    credentials_config=credentials_config, bigquery_tool_config=tool_config
+)
+
+# Analysis agent with BigQuery access
+analysis_agent = Agent(
+    model="gemini-2.5-pro",
+    name="analysis_agent",
+    description="Agent to answer questions about BigQuery and SQL queries",
+    instruction="""\
+You are a data science agent with access to several BigQuery tools.
+Make use of those tools to answer the user questions.
+    """,
+    tools=[
+        get_approval_status,
+        bigquery_toolset
+    ],
+)
+
+# Root orchestrator agent
 root_agent = Agent(
     name="orchestrator_root_agent",
     description="TriNetra: Your Agent",
     model="gemini-2.5-flash",
     instruction=ROOT_AGENT_INSTRUCTION,
     sub_agents=[
+        analysis_agent
     ]
 )
 

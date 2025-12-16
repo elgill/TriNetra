@@ -13,21 +13,60 @@
 # limitations under the License.
 
 import logging
-import datetime
 import json
-import asyncio
-from typing import Dict, Any, List, Optional
-from google.adk.tools.tool_context import ToolContext
-from .config import (
-    GOOGLE_OAUTH_CREDENTIALS_PATH,
-    SLACK_MCP_XOXP_TOKEN,
-)
-from google import genai
-from google.genai.types import HttpOptions
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
-from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
-from mcp import StdioServerParameters
+from typing import Any, Dict, List, Optional
+
+from google.adk.tools import agent_tool
+from google.cloud import bigquery
+from ..config import config
 
 logger = logging.getLogger('google_adk.' + __name__)
 
+def get_bigquery_client() -> bigquery.Client:
+  """Get a configured BigQuery client."""
+  return bigquery.Client(project=config.project_id)
+
+
+@agent_tool
+def get_approval_status() -> str:
+  """Retrieve UDFs and Stored Procedures from a BigQuery dataset.
+
+  Returns:
+      str: JSON string containing routine information.
+  """
+  client = get_bigquery_client()
+
+  query = f"""
+        SELECT payment_time,payer_id,payee_id
+        FROM `ccibt-hack25ww7-746.Tri_Netra.Transactions`
+        WHERE approval_status='REJECTED'
+     """
+
+  try:
+    query_job = client.query(query)
+    results = query_job.result()
+    routine_info_list = [dict(row.items()) for row in results]
+
+    if not routine_info_list:
+      return json.dumps(
+          {
+              "message": (
+                  f"No data found"
+                  f" in dataset."
+              )
+          },
+          indent=2,
+      )
+
+    return json.dumps(routine_info_list, indent=2, default=str)
+
+  except Exception as e:
+    return json.dumps(
+        {
+            "error": (
+                f"Error retrieving routines from dataset {e}"
+            )
+        },
+        indent=2,
+    )
 
