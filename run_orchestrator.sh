@@ -18,11 +18,6 @@ fi
 echo "Activating virtual environment..."
 source .adk-venv/bin/activate
 
-# Ensure ADK is installed and up to date
-echo "Installing/upgrading dependencies..."
-pip install --upgrade pip
-pip install --upgrade -r requirements.txt
-
 
 
 # Launch ADK Web for the orchestrator agent
